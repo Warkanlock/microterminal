@@ -21,8 +21,8 @@ export PORT=3000  # Default port is 3000
 ```
 
 3.	Run the server:
-    ```bash
-node server.js
+```bash
+npm start
 ```
 
 ## Usage
