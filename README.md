@@ -1,8 +1,8 @@
 # microterminal
 
-microterminal is toy-like project acting as lightweight HTML terminal interface allowing users to access their computer remotely via WebSocket. 
+microterminal is a toy-like project that acts as a lightweight HTML terminal interface that allows users to access their computer remotely via WebSocket. It supports a limited set of system commands within a sandbox directory, providing a secure and minimalist command-line experience.
 
-It supports a limited set of system commands within a sandboxed directory, ensuring a secure, minimalistic command-line experience.
+https://github.com/user-attachments/assets/e50bf200-8cdf-4b99-8100-86a959799a60
 
 ## Features
 
