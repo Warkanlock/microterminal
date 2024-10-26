@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        #terminal {
+            background-color: #000;
+            color: #00ff00;
+            flex-grow: 1;
+            border-radius: 5px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #output {
+            flex-grow: 1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+        }
+
+        #output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #output::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        #output::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        #input-line {
+            display: flex;
+            align-items: center;
+            padding: 5px 0;
+        }
+
+        #prompt {
+            color: #00ff00;
+            margin-right: 8px;
+        }
+
+        #command-input {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            flex-grow: 1;
+            outline: none;
+        }
+
+        .error-text {
+            color: #ff0000;
+        }
+
+        .success-text {
+            color: #00ff00;
+        }
+
+        .system-text {
+            color: #0088ff;
+        }
+
+        #status-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 5px;
+            background-color: #1a1a1a;
+            border-radius: 3px;
+        }
+
+        #connection-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #ff0000;
+            margin-right: 10px;
+        }
+
+        #status-text {
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal">
+        <div id="status-bar">
+            <div id="connection-status"></div>
+            <span id="status-text">Disconnected</span>
+        </div>
+        <div id="output"></div>
+        <div id="input-line">
+            <span id="prompt">$</span>
+            <input type="text" id="command-input" autofocus>
+        </div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('command-input');
+        const statusIndicator = document.getElementById('connection-status');
+        const statusText = document.getElementById('status-text');
+        let ws;
+
+        function connect() {
+            // Replace with your WebSocket server URL
+            ws = new WebSocket('ws://localhost:3000');
+
+            ws.onopen = () => {
+                appendOutput('Connected to server', 'system-text');
+                statusIndicator.style.backgroundColor = '#00ff00';
+                statusText.textContent = 'Connected';
+            };
+
+            ws.onclose = () => {
+                appendOutput('Disconnected from server', 'error-text');
+                statusIndicator.style.backgroundColor = '#ff0000';
+                statusText.textContent = 'Disconnected';
+                // Try to reconnect after 5 seconds
+                setTimeout(connect, 5000);
+            };
+
+            ws.onerror = (error) => {
+                appendOutput('WebSocket error: ' + error.message, 'error-text');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const response = JSON.parse(event.data);
+                    appendOutput(response.output, response.type === 'error' ? 'error-text' : 'success-text');
+                } catch (e) {
+                    appendOutput(event.data, 'success-text');
+                }
+            };
+        }
+
+        function appendOutput(text, className = '') {
+            const div = document.createElement('div');
+            div.className = className;
+            div.textContent = text;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearTerminal() {
+            while (output.firstChild) {
+                output.removeChild(output.firstChild);
+            }
+        }
+
+        function handleCommand(command) {
+            if (command.trim() === 'clear') {
+                clearTerminal();
+                return true;
+            }
+
+            if (command.trim() === 'exit') {
+                ws.close();
+                return true;
+            }
+
+            return false;
+        }
+
+        input.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                const command = input.value;
+                
+                if (command.trim()) {
+                    appendOutput('$ ' + command);
+                    
+                    // Handle client-side commands first
+                    if (!handleCommand(command)) {
+                        // If not a client-side command, send to server
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({ command }));
+                        } else {
+                            appendOutput('Not connected to server', 'error-text');
+                        }
+                    }
+                    
+                    // Add command to history and reset index
+                    commandHistory.unshift(command);
+                    historyIndex = -1;
+                    input.value = '';
+                }
+            }
+        });
+
+        // Command history functionality
+        const commandHistory = [];
+        let historyIndex = -1;
+
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    input.value = commandHistory[historyIndex] || '';
+                }
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (historyIndex > -1) {
+                    historyIndex--;
+                    input.value = commandHistory[historyIndex] || '';
+                }
+            } else if (event.key === 'l' && event.ctrlKey) {
+                // Also clear on Ctrl+L
+                event.preventDefault();
+                clearTerminal();
+            }
+        });
+
+        // Initialize connection
+        connect();
+
+        // Keep terminal input focused
+        document.addEventListener('click', () => {
+            input.focus();
+        });
+
+        // Handle paste events
+        input.addEventListener('paste', (event) => {
+            event.preventDefault();
+            const text = event.clipboardData.getData('text');
+            input.value = input.value + text;
+        });
+    </script>
+</body>
+</html>
