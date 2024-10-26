@@ -1,6 +1,11 @@
 {
-  "name": "web-terminal",
+  "name": "microterminal",
   "version": "1.0.0",
+  "description": "A lightweight terminal emulator that runs on your browser directly against a Websocket server",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
   "dependencies": {
     "ws": "^8.2.3",
     "express": "^4.17.1"

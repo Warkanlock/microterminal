@@ -18,7 +18,6 @@ const ALLOWED_COMMANDS = [
   "mkdir",
   "cd",
   "ping",
-  "top",
   "head",
   "tail",
   // dns commands
