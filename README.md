@@ -31,10 +31,6 @@ npm start
 - This will establish a WebSocket connection to your server (default port: `ws://localhost:3000`).
 - Execute Commands
 
-```json
-{ "command": "ls" }
-```
-
 ## Client-side Commands
 
 - View Available Commands: `help`
